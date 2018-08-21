@@ -13,14 +13,14 @@ namespace OrchardCore.Demo.Drivers
     {
         public override IDisplayResult Edit(UserProfile profile, BuildEditorContext context)
         {
-            return Shape<EditUserProfileViewModel>("UserProfile_Edit", model =>
+            return Initialize<EditUserProfileViewModel>("UserProfile_Edit", model =>
             {
                 model.Age = profile.Age;
                 model.Name = profile.Name;
             }).Location("Content:2");
         }
 
-        public override async Task<IDisplayResult> UpdateAsync(UserProfile profile, IUpdateModel updater, BuildEditorContext context)
+        public override async Task<IDisplayResult> UpdateAsync(UserProfile profile, BuildEditorContext context)
         {
             var model = new EditUserProfileViewModel();
 
@@ -30,7 +30,7 @@ namespace OrchardCore.Demo.Drivers
                 profile.Name = model.Name;
             }
 
-            return Edit(profile);
+            return Edit(profile, context);
         }
     }
 }

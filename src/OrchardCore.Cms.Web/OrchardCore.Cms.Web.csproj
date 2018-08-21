@@ -3,10 +3,8 @@
   <Import Project="..\OrchardCore.Build\Dependencies.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
-    <PreserveCompilationContext>true</PreserveCompilationContext>
-    <MvcRazorCompileOnPublish>true</MvcRazorCompileOnPublish>
-    <MvcRazorExcludeRefAssembliesFromPublish>false</MvcRazorExcludeRefAssembliesFromPublish>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TieredCompilation>true</TieredCompilation>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,14 +18,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore" Version="$(MicrosoftAspNetCorePackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
-    <!-- This reference is necessary for view precompilation to work on publish -->
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.ViewCompilation" Version="$(MicrosoftAspNetCoreMvcRazorViewCompilationPackageVersion)" PrivateAssets="All" />
+  <ItemGroup>
+    <Content Update="NLog.config">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <!-- Necessary as we reference the Project and not the Package -->
   <Import Project="..\OrchardCore\OrchardCore.Application.Cms.Targets\OrchardCore.Application.Cms.Targets.targets" />
   <Import Project="..\OrchardCore\OrchardCore.Application.Targets\OrchardCore.Application.Targets.targets" />
+  <Import Project="..\OrchardCore.Build\OrchardCore.Commons.targets" />
 
 </Project>

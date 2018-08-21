@@ -45,7 +45,7 @@ namespace OrchardCore.Https.Drivers {
             if (!isHttpsRequest)
                 _notifier.Warning(T["For safety, Enabling require HTTPS over HTTP has been prevented."]);
 
-            return Shape<HttpsSettingsViewModel>("HttpsSettings_Edit", model =>
+            return Initialize<HttpsSettingsViewModel>("HttpsSettings_Edit", model =>
             {
                 model.IsHttpsRequest = isHttpsRequest;
                 model.RequireHttps = settings.RequireHttps;
@@ -57,13 +57,13 @@ namespace OrchardCore.Https.Drivers {
             }).Location("Content:2").OnGroup(SettingsGroupId);
         }
 
-        public override async Task<IDisplayResult> UpdateAsync(HttpsSettings settings, IUpdateModel updater, string groupId)
+        public override async Task<IDisplayResult> UpdateAsync(HttpsSettings settings, BuildEditorContext context)
         {
-            if (groupId == SettingsGroupId)
+            if (context.GroupId == SettingsGroupId)
             {
                 var model = new HttpsSettingsViewModel();
 
-                await updater.TryUpdateModelAsync(model, Prefix);
+                await context.Updater.TryUpdateModelAsync(model, Prefix);
 
                 settings.RequireHttps = model.RequireHttps;
                 settings.RequireHttpsPermanent = model.RequireHttpsPermanent;
@@ -76,7 +76,7 @@ namespace OrchardCore.Https.Drivers {
                 _memoryCache.Set(entry.Key, entry, new MemoryCacheEntryOptions { Priority = CacheItemPriority.NeverRemove });
             }
 
-            return Edit(settings);
+            return await EditAsync(settings, context);
         }
     }
 }

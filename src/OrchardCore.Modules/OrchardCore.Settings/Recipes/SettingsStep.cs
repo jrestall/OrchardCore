@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Routing;
 using Newtonsoft.Json.Linq;
@@ -29,7 +29,7 @@ namespace OrchardCore.Settings.Recipes
             var model = context.Step;
             var site = await _siteService.GetSiteSettingsAsync();
 
-            foreach(JProperty property in model.Properties())
+            foreach (JProperty property in model.Properties())
             {
                 switch (property.Name)
                 {
@@ -43,6 +43,10 @@ namespace OrchardCore.Settings.Recipes
 
                     case "Culture":
                         site.Culture = property.Value.ToString();
+                        break;
+
+                    case "SupportedCultures":
+                        site.SupportedCultures = property.Value<string[]>();
                         break;
 
                     case "MaxPagedCount":
@@ -74,7 +78,7 @@ namespace OrchardCore.Settings.Recipes
                         break;
 
                     case "TimeZone":
-                        site.TimeZone = property.ToString();
+                        site.TimeZoneId = property.ToString();
                         break;
 
                     case "UseCdn":
@@ -86,10 +90,10 @@ namespace OrchardCore.Settings.Recipes
                         break;
 
                     default:
-                        site.Properties.Add(property);
+                        site.Properties[property.Name] = property.Value;
                         break;
                 }
-            }            
+            }
 
             await _siteService.UpdateSiteSettingsAsync(site);
         }

@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc.Localization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
-using OpenIddict.Core;
+using OpenIddict.Abstractions;
 using OrchardCore.Admin;
 using OrchardCore.DisplayManagement;
 using OrchardCore.DisplayManagement.Notify;
@@ -17,9 +17,8 @@ using OrchardCore.Environment.Shell.Descriptor.Models;
 using OrchardCore.Modules;
 using OrchardCore.Navigation;
 using OrchardCore.OpenId.Abstractions.Descriptors;
-using OrchardCore.OpenId.Abstractions.Models;
+using OrchardCore.OpenId.Abstractions.Managers;
 using OrchardCore.OpenId.Services;
-using OrchardCore.OpenId.Services.Managers;
 using OrchardCore.OpenId.Settings;
 using OrchardCore.OpenId.ViewModels;
 using OrchardCore.Security.Services;
@@ -37,11 +36,9 @@ namespace OrchardCore.OpenId.Controllers
         private readonly ISiteService _siteService;
         private readonly IShapeFactory _shapeFactory;
         private readonly IRoleProvider _roleProvider;
-        private readonly OpenIdApplicationManager _applicationManager;
+        private readonly IOpenIdApplicationManager _applicationManager;
         private readonly INotifier _notifier;
         private readonly ShellDescriptor _shellDescriptor;
-        private readonly UserManager<IUser> _userManager;
-        private readonly IOptions<IdentityOptions> _identityOptions;
 
         public ApplicationController(
             IShapeFactory shapeFactory,
@@ -49,9 +46,7 @@ namespace OrchardCore.OpenId.Controllers
             IStringLocalizer<ApplicationController> stringLocalizer,
             IAuthorizationService authorizationService,
             IRoleProvider roleProvider,
-            OpenIdApplicationManager applicationManager,
-            UserManager<IUser> userManager,
-            IOptions<IdentityOptions> identityOptions,
+            IOpenIdApplicationManager applicationManager,
             IHtmlLocalizer<ApplicationController> htmlLocalizer,
             INotifier notifier,
             ShellDescriptor shellDescriptor)
@@ -65,8 +60,6 @@ namespace OrchardCore.OpenId.Controllers
             _roleProvider = roleProvider;
             _notifier = notifier;
             _shellDescriptor = shellDescriptor;
-            _userManager = userManager;
-            _identityOptions = identityOptions;
         }
 
         public async Task<ActionResult> Index(PagerParameters pagerParameters)
@@ -168,6 +161,15 @@ namespace OrchardCore.OpenId.Controllers
                 Type = model.Type
             };
 
+            if (model.AllowLogoutEndpoint)
+            {
+                descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Logout);
+            }
+            else
+            {
+                descriptor.Permissions.Remove(OpenIddictConstants.Permissions.Endpoints.Logout);
+            }
+
             if (model.AllowAuthorizationCodeFlow)
             {
                 descriptor.Permissions.Add(OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode);
@@ -199,11 +201,11 @@ namespace OrchardCore.OpenId.Controllers
             }
 
             descriptor.PostLogoutRedirectUris.UnionWith(
-                from uri in model.PostLogoutRedirectUris?.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
+                from uri in model.PostLogoutRedirectUris?.Split(new[] { " ", "," }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
                 select new Uri(uri, UriKind.Absolute));
 
             descriptor.RedirectUris.UnionWith(
-                from uri in model.RedirectUris?.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
+                from uri in model.RedirectUris?.Split(new[] { " ","," }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
                 select new Uri(uri, UriKind.Absolute));
 
             descriptor.Roles.UnionWith(model.RoleEntries
@@ -242,6 +244,7 @@ namespace OrchardCore.OpenId.Controllers
                 AllowImplicitFlow = await HasPermissionAsync(OpenIddictConstants.Permissions.GrantTypes.Implicit),
                 AllowPasswordFlow = await HasPermissionAsync(OpenIddictConstants.Permissions.GrantTypes.Password),
                 AllowRefreshTokenFlow = await HasPermissionAsync(OpenIddictConstants.Permissions.GrantTypes.RefreshToken),
+                AllowLogoutEndpoint = await HasPermissionAsync(OpenIddictConstants.Permissions.Endpoints.Logout),
                 ClientId = await _applicationManager.GetClientIdAsync(application),
                 ConsentType = await _applicationManager.GetConsentTypeAsync(application),
                 DisplayName = await _applicationManager.GetDisplayNameAsync(application),
@@ -284,13 +287,19 @@ namespace OrchardCore.OpenId.Controllers
                 ModelState.AddModelError(nameof(model.ClientSecret), T["The client secret is required for confidential applications."]);
             }
 
+            if (!model.UpdateClientSecret  &&
+                string.Equals(model.Type, OpenIddictConstants.ClientTypes.Confidential, StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError(string.Empty, T["Setting a new client secret is required"]);
+            }
+
             if (!model.AllowAuthorizationCodeFlow && !model.AllowClientCredentialsFlow &&
                 !model.AllowImplicitFlow && !model.AllowPasswordFlow && !model.AllowRefreshTokenFlow)
             {
                 ModelState.AddModelError(string.Empty, "At least one flow must be enabled.");
             }
 
-            IOpenIdApplication application = null;
+            object application = null;
 
             if (ModelState.IsValid)
             {
@@ -298,12 +307,6 @@ namespace OrchardCore.OpenId.Controllers
                 if (application == null)
                 {
                     return NotFound();
-                }
-
-                if (!model.UpdateClientSecret && await _applicationManager.IsPublicAsync(application) &&
-                    string.Equals(model.Type, OpenIddictConstants.ClientTypes.Confidential, StringComparison.OrdinalIgnoreCase))
-                {
-                    ModelState.AddModelError(nameof(model.UpdateClientSecret), T["Setting a new client secret is required"]);
                 }
 
                 var other = await _applicationManager.FindByClientIdAsync(model.ClientId);
@@ -338,6 +341,15 @@ namespace OrchardCore.OpenId.Controllers
             if (string.Equals(descriptor.Type, OpenIddictConstants.ClientTypes.Public, StringComparison.OrdinalIgnoreCase))
             {
                 descriptor.ClientSecret = null;
+            }
+
+            if (model.AllowLogoutEndpoint)
+            {
+                descriptor.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Logout);
+            }
+            else
+            {
+                descriptor.Permissions.Remove(OpenIddictConstants.Permissions.Endpoints.Logout);
             }
 
             if (model.AllowAuthorizationCodeFlow)
@@ -404,17 +416,30 @@ namespace OrchardCore.OpenId.Controllers
                 descriptor.Permissions.Remove(OpenIddictConstants.Permissions.Endpoints.Token);
             }
 
-            descriptor.Roles.IntersectWith(model.RoleEntries
+            descriptor.Roles.Clear();
+
+            foreach (string selectedRole in (model.RoleEntries
                 .Where(role => role.Selected)
-                .Select(role => role.Name));
+                .Select(role => role.Name)))
+            {
+                descriptor.Roles.Add(selectedRole);
+            }
 
-            descriptor.PostLogoutRedirectUris.IntersectWith(
-                from uri in model.PostLogoutRedirectUris?.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
-                select new Uri(uri, UriKind.Absolute));
+            descriptor.PostLogoutRedirectUris.Clear();
+            foreach (Uri uri in
+            (from uri in model.PostLogoutRedirectUris?.Split(new[] { " ", "," }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
+             select new Uri(uri, UriKind.Absolute)))
+            {
+                descriptor.PostLogoutRedirectUris.Add(uri);
+            }
 
-            descriptor.RedirectUris.IntersectWith(
-                from uri in model.RedirectUris?.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
-                select new Uri(uri, UriKind.Absolute));
+            descriptor.RedirectUris.Clear();
+            foreach (Uri uri in
+           (from uri in model.RedirectUris?.Split(new[] { " ", "," }, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>()
+            select new Uri(uri, UriKind.Absolute)))
+            {
+                descriptor.RedirectUris.Add(uri);
+            }
 
             await _applicationManager.UpdateAsync(application, descriptor);
 
