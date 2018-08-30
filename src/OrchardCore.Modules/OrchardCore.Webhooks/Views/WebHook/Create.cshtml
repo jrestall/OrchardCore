@@ -1,0 +1,195 @@
+@using System.Security.Cryptography.X509Certificates
+@model EditWebHookViewModel
+@{
+
+    bool IsSslVerificationVisible()
+    {
+        return Model.WebHook.Url != null &&
+               Model.WebHook.Url.Trim().ToLower().StartsWith("https://");
+    }
+
+    bool HasInputAdvancedField()
+    {
+        return Model.WebHook.Headers.Any();
+    }
+}
+<h1>@RenderTitleSegments(T["Create Webhook"])</h1>
+
+<p>
+    We’ll send a POST request to the URL below with details of the subscribed events.
+</p>
+
+<form asp-action="Create" asp-controller="WebHook" asp-area="OrchardCore.WebHooks" method="post">
+    @Html.ValidationSummary()
+    <fieldset class="form-group" asp-validation-class-for="WebHook.Name">
+        <label asp-for="WebHook.Name">@T["Name (required)"] <span asp-validation-for="WebHook.Name"></span></label>
+        <input asp-for="WebHook.Name" class="form-control" type="text" />
+    </fieldset>
+
+    <fieldset class="form-group" asp-validation-class-for="WebHook.Url">
+        <label asp-for="WebHook.Url">@T["Url (required)"] <span asp-validation-for="WebHook.Url"></span></label>
+        <input asp-for="WebHook.Url" class="form-control" type="text" />
+    </fieldset>
+
+    <fieldset id="sslVerificationFields" class="form-group alert 
+              @(Model.WebHook.ValidateSsl ? "alert-success" : "alert-danger") 
+              @(IsSslVerificationVisible() ? "" : "d-none")" 
+              role="alert">
+        <div>@T["SSL Verification"]</div>
+        <p><small class="text-muted"><i class="fa fa-lock"></i> @T["By default, SSL certificates are verified when sending notifications."]</small></p>
+        <div class="form-check form-check-inline">
+            <input asp-for="WebHook.ValidateSsl" class="form-check-input" type="radio" id="enableVerificationRadio" value="true">
+            <label class="form-check-label" for="enableVerificationRadio">
+                <strong>@T["Enable SSL verification"]</strong>
+            </label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input asp-for="WebHook.ValidateSsl" class="form-check-input" type="radio" id="disableVerificationRadio" value="false">
+            <label class="form-check-label" for="disableVerificationRadio">
+                @T["Disable"] <small class="text-muted">@T["(not recommended)"]</small>
+            </label>
+        </div>
+    </fieldset>
+
+    <fieldset class="form-group" asp-validation-class-for="WebHook.Secret">
+        <label asp-for="WebHook.Secret">@T["Secret (required)"] <span asp-validation-for="WebHook.Secret"></span></label>
+        <div class="input-group">
+            <input asp-for="WebHook.Secret" class="form-control" type="text" />
+            <div class="input-group-append">
+                <button id="btn-regenerate" class="btn btn-outline-primary">
+                    <i class="fa fa-redo-alt"></i> @T["Regenerate"]
+                </button>
+            </div>
+        </div>
+        <small class="form-text text-muted">@T["This secret is used to sign all notifications. Use the generated secret or enter your own."]</small>
+    </fieldset>
+
+    <div id="accordion" class="form-group">
+        <div class="card">
+            <div class="card-header" id="headingOne">
+                <h5 class="mb-0">
+                    <button type="button" class="btn btn-light" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <i class="fa fa-caret-down"></i> @T["Advanced Options"]
+                    </button>
+                </h5>
+            </div>
+
+            <div id="collapseOne" class="@(HasInputAdvancedField() ? "" : "collapse")" aria-labelledby="headingOne" data-parent="#accordion">
+                <div class="card-body">
+                    <fieldset id="headers" class="form-group" asp-validation-class-for="WebHook.Headers">
+                        <label>@T["Custom Headers"]</label>
+                        <small class="alert-light">@T["(Press <span class=\"fa fa-plus\"></span> to add another header)"]</small>
+                        <div id="headersContainer">
+                            @for(int i = 0; i < Model.WebHook.Headers.Count + 1; i++)
+                            {
+                                var header = Model.WebHook.Headers.ElementAtOrDefault(i);
+                                var name = Html.NameFor(m => m.WebHook.Headers) + "[" + i + "]";
+                                <div class="header row">
+                                    <div class="col">
+                                        <input name="@(name).Key" value="@header.Key" class="form-control" type="text" placeholder="Key"/>
+                                    </div>
+                                    <div><strong>:</strong></div>
+                                    <div class="col input-group mb-3">
+                                        <input name="@(name).Value" value="@header.Value" class="form-control" type="text" placeholder="Value" />
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-primary btn-add" type="button">
+                                                <span class="fa fa-plus"></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            } 
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <fieldset class="form-group">
+        <input asp-for="WebHook.Enabled" type="checkbox" />
+        <label class="form-check-label" asp-for="WebHook.Enabled">
+            Enabled
+        </label>
+        <small class="form-text text-muted">We will send notifications when your selected events occur.</small>
+    </fieldset>
+
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">@T["Save"]</button>
+        <a class="btn btn-secondary" asp-route-action="Index">@T["Cancel"]</a>
+    </div>
+</form>
+
+
+<script depends-on="jQuery" asp-src="~/OrchardCore.WebHooks/Scripts/orchard.webhooks.min.js" 
+    debug-src="~/OrchardCore.WebHooks/Scripts/orchard.webhooks.js" type="text/javascript" at="Foot">
+</script>
+<script at="Foot">
+    $(function()
+    {
+        // Secret Field
+        function setRandomSecret(override) {
+            var field = $('#@Html.IdFor(x => x.WebHook.Secret)');
+            // Don't set a new secret if there's already one set unless told to override.
+            if (field.val() && !override) {
+                return;
+            }
+
+            var secret = Math.random().toString(36).substring(2, 15) +
+                Math.random().toString(36).substring(2, 15) +
+                Math.random().toString(36).substring(2, 15);
+
+            field.val(secret);
+        }
+
+        setRandomSecret(false);
+        $(document).on('click', '#btn-regenerate', function (e) {
+            e.preventDefault();
+            setRandomSecret(true);
+        });
+        
+        // Custom Headers Field
+        $(document).on('click', '.btn-add', function(e)
+        {
+            e.preventDefault();
+
+            var controlForm = $('#headers #headersContainer:first'),
+                currentEntry = $(this).parents('.header:first'),
+                newEntry = $(currentEntry.clone()).appendTo(controlForm);
+
+            newEntry.find('input').val('');
+            controlForm.find('.header:not(:last) .btn-add')
+                .removeClass('btn-add').addClass('btn-remove')
+                .removeClass('btn-success').addClass('btn-danger')
+                .html('<span class="fa fa-trash"></span>');
+        }).on('click', '.btn-remove', function(e)
+        {
+            $(this).parents('.header:first').remove();
+
+            e.preventDefault();
+            return false;
+        });
+
+        // SSL Verification Fields
+        $('#@Html.IdFor(x => x.WebHook.Url)').keyup(function () {
+            var input = $(this);
+            var val = input.val();
+
+            if (val.trim().toLowerCase().startsWith("https://")) {
+                $('#sslVerificationFields').removeClass('d-none');
+            } else {
+                $('#sslVerificationFields').addClass('d-none');
+            }
+        });
+
+        $('#enableVerificationRadio').on('change',
+            function() {
+                $('#sslVerificationFields').addClass('alert-success').removeClass('alert-danger');
+            });
+
+        $('#disableVerificationRadio').on('change',
+            function() {
+                $('#sslVerificationFields').addClass('alert-danger').removeClass('alert-success');
+            });
+    });
+</script>
