@@ -115,6 +115,7 @@ namespace OrchardCore.WebHooks.Services
             // Add extra request or entity headers
             foreach (var kvp in webHook.Headers)
             {
+                if (string.IsNullOrEmpty(kvp.Key)) continue;
                 if (request.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value)) continue;
                 if (request.Content.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value)) continue;
 

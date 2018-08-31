@@ -20,10 +20,12 @@ namespace OrchardCore.WebHooks.Controllers
     {
         private readonly IAuthorizationService _authorizationService;
         private readonly IWebHookStore _store;
+        private readonly IWebHookEventManager _eventManager;
         private readonly INotifier _notifier;
 
         public WebHookController(
             IWebHookStore store,
+            IWebHookEventManager eventManager,
             IAuthorizationService authorizationService,
             INotifier notifier,
             IStringLocalizer<WebHookController> stringLocalizer,
@@ -32,6 +34,7 @@ namespace OrchardCore.WebHooks.Controllers
             )
         {
             _store = store;
+            _eventManager = eventManager;
             _authorizationService = authorizationService;
             _notifier = notifier;
 
@@ -54,7 +57,7 @@ namespace OrchardCore.WebHooks.Controllers
             }
 
             var webHooksList = await _store.GetAllWebHooksAsync();
-            
+
             var model = new WebHookIndexViewModel
             {
                 WebHooksList = webHooksList
@@ -70,7 +73,11 @@ namespace OrchardCore.WebHooks.Controllers
                 return Unauthorized();
             }
 
-            var model = new EditWebHookViewModel();
+            var events = _eventManager.GetAllWebHookEventsAsync();
+            var model = new EditWebHookViewModel
+            {
+                Events = events
+            };
 
             return View(model);
         }
@@ -97,6 +104,7 @@ namespace OrchardCore.WebHooks.Controllers
             }
 
             // If we got this far, something failed, redisplay form
+            model.Events = _eventManager.GetAllWebHookEventsAsync();
             return View(model);
         }
 
@@ -195,19 +203,22 @@ namespace OrchardCore.WebHooks.Controllers
             var ping = new Ping();
             var uri = new Uri(webHook.Url);
 
+
             PingReply result = null;
+            string errorMessage = string.Empty;
             try
             {
                 result = ping.Send(uri.Host);
             }
             catch (PingException ex)
             {
-                Logger.LogInformation(ex, "Failed to ping {0} because {1}.", uri.Host, ex.Message);
+                errorMessage = ex.Message;
+                Logger.LogInformation(ex, "Failed to ping {0} due to failure: {1}.", uri.Host, errorMessage);
             }
 
             if (result == null || result.Status != IPStatus.Success)
             {
-                _notifier.Error(H["Failed to ping {0}", uri.Host]);
+                _notifier.Error(H["Failed to ping {0}. {1}", uri.Host, errorMessage]);
             }
             else
             {

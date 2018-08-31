@@ -5,7 +5,7 @@ using OrchardCore.Environment.Navigation;
 using OrchardCore.Modules;
 using OrchardCore.WebHooks.Handlers;
 using OrchardCore.WebHooks.Services;
-using OrchardCore.WebHooks.Services.Topics;
+using OrchardCore.WebHooks.Services.Events;
 using Polly;
 using Polly.Extensions.Http;
 using Polly.Registry;
@@ -31,9 +31,10 @@ namespace OrchardCore.WebHooks
             services.AddScoped<IWebHookManager, WebHookManager>();
             services.AddScoped<IWebHookSender, WebHookSender>();
             services.AddScoped<IWebHookStore, WebHookStore>();
-            services.AddScoped<IWebHookTopicProvider, AssetsWebHookTopics>();
-            services.AddScoped<IWebHookTopicProvider, WildcardWebHookTopic>();
-            services.AddScoped<IWebHookTopicProvider, ContentTypesWebHookTopics>();
+            services.AddScoped<IWebHookEventManager, WebHookEventManagaer>();
+            services.AddScoped<IWebHookEventProvider, MediaAssetWebHookEvents>();
+            services.AddScoped<IWebHookEventProvider, WildcardWebHookEvent>();
+            services.AddScoped<IWebHookEventProvider, ContentWebHookEvents>();
         }
 
         private static void ConfigureHttpClient(IServiceCollection services)

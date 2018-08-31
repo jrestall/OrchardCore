@@ -4,10 +4,10 @@ Webhooks provide a way for external services to receive information about certai
 
 When the specified events happen we’ll send a POST request to each of the URLs you have configured. This allows external sites to be notified in near real-time when events such as a new blog post are published within your site.
 
-# List of Supported Webhook Topics
-Right now webhooks can be registered for the following topics:
+# List of Supported Webhook Events
+Right now webhooks can be registered for the following events:
 
-| Model          | Topics                     | Trigger                                 |
+| Model          | Event                      | Trigger                                 |
 |----------------|----------------------------|-----------------------------------------|
 | Content        | content.created            | When any content item is created.       |
 |                | content.updated            | When any content item is updated.       |

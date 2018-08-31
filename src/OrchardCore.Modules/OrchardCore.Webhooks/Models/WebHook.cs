@@ -10,7 +10,7 @@ namespace OrchardCore.WebHooks.Models
 
         public string Url { get; set; }
 
-        public IDictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
+        public IList<KeyValuePair<string, string>> Headers { get; set; } = new List<KeyValuePair<string, string>>();
 
         public string Secret { get; set; }
 
@@ -29,5 +29,12 @@ namespace OrchardCore.WebHooks.Models
         public bool Enabled { get; set; } = true;
 
         public bool ValidateSsl { get; set; } = true;
+    }
+
+    public class WebHookHeader
+    {
+        public string Name { get; set; }
+
+        public string Value { get; set; }
     }
 }

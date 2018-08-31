@@ -3,8 +3,8 @@ using OrchardCore.WebHooks.Models;
 
 namespace OrchardCore.WebHooks.Services
 {
-    public interface IWebHookTopicProvider
+    public interface IWebHookEventProvider
     {
-        IEnumerable<WebHookTopic> GetFilters();
+        IEnumerable<WebHookEvent> GetEvents();
     }
 }
