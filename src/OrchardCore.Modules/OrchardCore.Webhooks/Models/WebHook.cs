@@ -8,7 +8,11 @@ namespace OrchardCore.WebHooks.Models
 
         public string Name { get; set; }
 
+        public string HttpMethod { get; set; }
+        
         public string Url { get; set; }
+
+        public string ContentType { get; set; }
 
         public IList<KeyValuePair<string, string>> Headers { get; set; } = new List<KeyValuePair<string, string>>();
 
@@ -25,6 +29,8 @@ namespace OrchardCore.WebHooks.Models
         /// A JavaScript expression that evaluates to true or false that filters the triggering events. 
         /// </summary>
         public string FilterExpression { get; set; }
+
+        public string Payload { get; set; }
 
         public bool Enabled { get; set; } = true;
 

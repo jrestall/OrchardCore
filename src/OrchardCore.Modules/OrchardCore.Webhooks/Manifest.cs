@@ -12,5 +12,6 @@ using OrchardCore.Modules.Manifest;
     Name = "WebHooks",
     Description = "Provides a way to notify external services about specified events.",
     Category = "Infrastructure",
+    Dependencies = new[] { "OrchardCore.Liquid" },
     DefaultTenantOnly = false
 )]

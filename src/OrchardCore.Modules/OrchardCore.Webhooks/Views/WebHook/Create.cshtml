@@ -5,28 +5,37 @@
         return Model.WebHook.Url != null &&
                Model.WebHook.Url.Trim().ToLower().StartsWith("https://");
     }
-
-    bool HasEnteredAdvancedField()
-    {
-        return Model.WebHook.Headers.Any();
-    }
 }
 <h1>@RenderTitleSegments(T["Create Webhook"])</h1>
 
 <p>
-    We’ll send a POST request to the URL below with details of the subscribed events.
+    We’ll send a request to the URL below with the details of the subscribed events.
 </p>
 
 <form asp-action="Create" asp-controller="WebHook" asp-area="OrchardCore.WebHooks" method="post">
     @Html.ValidationSummary()
+
     <fieldset class="form-group" asp-validation-class-for="WebHook.Name">
-        <label asp-for="WebHook.Name">@T["Name (required)"] <span asp-validation-for="WebHook.Name"></span></label>
+        <label asp-for="WebHook.Name">@T["Name"] <small class="text-muted">@T["(required)"]</small> <span asp-validation-for="WebHook.Name"></span></label>
         <input asp-for="WebHook.Name" class="form-control" type="text" />
     </fieldset>
 
     <fieldset class="form-group" asp-validation-class-for="WebHook.Url">
-        <label asp-for="WebHook.Url">@T["Url (required)"] <span asp-validation-for="WebHook.Url"></span></label>
-        <input asp-for="WebHook.Url" class="form-control" type="text" />
+        <label asp-for="WebHook.Url">@T["URL"] <small class="text-muted">@T["(required)"]</small> <span asp-validation-for="WebHook.Url"></span></label>
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <select asp-for="WebHook.HttpMethod" class="custom-select">
+                    <option selected>POST</option>
+                    <option>GET</option>
+                    <option>PUT</option>
+                    <option>DELETE</option>
+                    <option>PATCH</option>
+                    <option>HEAD</option>
+                </select>
+            </div>
+            <input asp-for="WebHook.Url" class="form-control" type="text" />
+        </div>
+        <span class="hint">@T["The URL the webhook notification will be sent to."]</span>
     </fieldset>
 
     <fieldset id="sslVerificationFields" class="form-group alert
@@ -50,7 +59,7 @@
     </fieldset>
 
     <fieldset class="form-group" asp-validation-class-for="WebHook.Secret">
-        <label asp-for="WebHook.Secret">@T["Secret (required)"] <span asp-validation-for="WebHook.Secret"></span></label>
+        <label asp-for="WebHook.Secret">@T["Secret"] <small class="text-muted">@T["(required)"]</small> <span asp-validation-for="WebHook.Secret"></span></label>
         <div class="input-group">
             <input asp-for="WebHook.Secret" class="form-control" type="text" />
             <div class="input-group-append">
@@ -59,59 +68,20 @@
                 </button>
             </div>
         </div>
-        <small class="form-text text-muted">@T["This secret is used to sign all notifications. Use the generated secret or enter your own."]</small>
+        <span class="hint">@T["This secret is used to sign all notifications. Use the generated secret or enter your own."]</small>
     </fieldset>
 
-    <partial name="_EventSelection" model="Model" />
+    <partial name="_Triggers" model="Model" />
+    <partial name="_Headers" model="Model" />
+    <partial name="_Payload" model="Model" />
 
-    <fieldset id="accordion" class="form-group">
-        <div class="card">
-            <div class="card-header" id="headingOne">
-                <h5 class="mb-0">
-                    <button type="button" class="btn btn-light" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                        <i class="fa fa-caret-down"></i> @T["Advanced Options"]
-                    </button>
-                </h5>
-            </div>
-            <div id="collapseOne" class="collapse @(HasEnteredAdvancedField() ? "show" : "")" aria-labelledby="headingOne" data-parent="#accordion">
-                <div class="card-body">
-                    <fieldset id="headers" class="form-group" asp-validation-class-for="WebHook.Headers">
-                        <label>@T["Custom Headers"]</label>
-                        <small class="alert-light">@T["(Press <span class=\"fa fa-plus\"></span> to add another header)"]</small>
-                        <div id="headersContainer">
-                            @{ var headerCount = Model.WebHook.Headers.Count > 0 ? Model.WebHook.Headers.Count : Model.WebHook.Headers.Count + 1;}
-                            @for (int i = 0; i < headerCount; i++)
-                            {
-                                var header = Model.WebHook.Headers.ElementAtOrDefault(i);
-                                var name = Html.NameFor(m => m.WebHook.Headers) + "[" + i + "]";
-                                <div class="header row">
-                                    <div class="col">
-                                        <input name="@(name).Key" value="@header.Key" class="form-control headerKey" type="text" placeholder="Key" />
-                                    </div>
-                                    <div><strong>:</strong></div>
-                                    <div class="col input-group mb-3">
-                                        <input name="@(name).Value" value="@header.Value" class="form-control headerValue" type="text" placeholder="Value" />
-                                        <div class="input-group-append">
-                                            <button class="btn btn-outline-primary btn-add" type="button">
-                                                <span class="fa @(i == Model.WebHook.Headers.Count - 1 || Model.WebHook.Headers.Count == 0 ? "fa-plus" : "fa-trash")"></span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </fieldset>
-                </div>
-            </div>
-        </div>
-    </fieldset>
-
+    <hr />
     <fieldset class="form-group">
         <input asp-for="WebHook.Enabled" type="checkbox" />
         <label class="form-check-label" asp-for="WebHook.Enabled">
             Enabled
         </label>
-        <small class="form-text text-muted">@T["We will send notifications when your selected events occur."]</small>
+        <span class="hint">@T["We will send notifications when your selected event(s) occur."]</small>
     </fieldset>
 
     <div class="form-group">
@@ -120,7 +90,7 @@
     </div>
 </form>
 
-<!-- Modal -->
+<!-- SSL Verification Modal -->
 <div class="modal fade" id="verificationModal" tabindex="-1" role="dialog" aria-labelledby="verificationModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -142,10 +112,9 @@
     </div>
 </div>
 
+<style asp-src="/OrchardCore.WebHooks/Styles/webhooks.edit.css"></style>
+<script depends-on="jQuery" asp-src="~/OrchardCore.WebHooks/Scripts/webhooks.edit.js" type="text/javascript" at="Foot"></script>
 
-<script depends-on="jQuery" asp-src="~/OrchardCore.WebHooks/Scripts/orchard.webhooks.min.js" 
-    debug-src="~/OrchardCore.WebHooks/Scripts/orchard.webhooks.js" type="text/javascript" at="Foot">
-</script>
 <script at="Foot">
     $(function()
     {
