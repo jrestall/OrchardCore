@@ -9,15 +9,15 @@ namespace OrchardCore.WebHooks.Extensions
     public static class WebHookExtensions
     {
         /// <summary>
-        /// Determines whether a given <paramref name="topic"/> matches the subscribed topics for a given <see cref="WebHook"/>.
+        /// Determines whether a given <paramref name="@event"/> matches the subscribed topics for a given <see cref="WebHook"/>.
         /// The action can either match a topic directly or match a wildcard.
         /// </summary>
         /// <param name="webHook">The <see cref="WebHook"/> instance to operate on.</param>
         /// <param name="topic">The topic to match against the subscribed <paramref name="webHook"/> topics.</param>
-        /// <returns><c>true</c> if the <paramref name="topic"/> matches, otherwise <c>false</c>.</returns>
-        public static bool MatchesTopic(this WebHook webHook, string topic)
+        /// <returns><c>true</c> if the <paramref name="@event"/> matches, otherwise <c>false</c>.</returns>
+        public static bool MatchesEvent(this WebHook webHook, string @event)
         {
-            return webHook != null && (webHook.Events.Contains(WildcardWebHookEvent.WildcardEvent.Name) || webHook.Events.Contains(topic));
+            return webHook != null && (webHook.Events.Contains(WildcardWebHookEvent.WildcardEvent.Id) || webHook.Events.Contains(@event));
         }
     }
 }

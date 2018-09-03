@@ -27,7 +27,7 @@ namespace OrchardCore.WebHooks.Services
             var webHooksList = await _store.GetAllWebHooksAsync();
 
             // Match any webhooks against the triggered event e.g. *.*, content.created, asset.updated
-            var matchedWebHooks = webHooksList.WebHooks.Where(x => x.Enabled && x.MatchesTopic(eventName));
+            var matchedWebHooks = webHooksList.WebHooks.Where(x => x.Enabled && x.MatchesEvent(eventName));
             
             var context = new WebHookNotificationContext
             {
