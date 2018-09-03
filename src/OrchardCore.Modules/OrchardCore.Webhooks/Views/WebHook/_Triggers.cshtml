@@ -28,9 +28,9 @@
             </fieldset>
 
             @{
-                var contentEvents = Model.Events.Where(e => e.Category == "Content" && e.Id.StartsWith("content."));
+                var contentEvents = Model.Events.Where(e => e.Category == "Content");
 
-                var contentTypeEvents = Model.Events.Where(e => e.Category == "Content" && !e.Id.StartsWith("content."));
+                var contentTypeEvents = Model.Events.Where(e => e.Category == "ContentType");
                 var groupedContentTypeEvents = contentTypeEvents.GroupBy(e => e.Name);
             }
             <div id="selectedEventsContainer" style="display: none" class="form-group">

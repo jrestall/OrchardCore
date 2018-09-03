@@ -11,6 +11,6 @@ namespace OrchardCore.WebHooks.ViewModels
 
         public bool CustomPayload { get; set; }
 
-        public bool SubscribeAllEvents { get; set; }
+        public bool SubscribeAllEvents { get; set; } = true;
     }
 }

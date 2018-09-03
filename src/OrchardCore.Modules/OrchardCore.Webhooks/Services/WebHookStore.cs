@@ -59,6 +59,8 @@ namespace OrchardCore.WebHooks.Services
             var webHookList = await GetAllWebHooksAsync();
 
             webHook.Id = Guid.NewGuid().ToString("n");
+            SanitizeWebHook(webHook);
+            
             webHookList.WebHooks.Add(webHook);
 
             _session.Save(webHookList);
@@ -77,11 +79,19 @@ namespace OrchardCore.WebHooks.Services
             }
 
             var index = webHookList.WebHooks.IndexOf(webHookToUpdate);
+
+            SanitizeWebHook(webHook);
             webHookList.WebHooks[index] = webHook;
 
             _session.Save(webHookList);
 
             return true;
+        }
+
+        public void SanitizeWebHook(WebHook webHook)
+        {
+            // Remove empty custom headers
+            webHook.Headers = webHook.Headers.Where(header => !string.IsNullOrWhiteSpace(header.Key)).ToList();
         }
     }
 }

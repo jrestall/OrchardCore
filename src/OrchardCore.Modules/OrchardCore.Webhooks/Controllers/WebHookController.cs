@@ -16,7 +16,6 @@ using OrchardCore.WebHooks.ViewModels;
 
 namespace OrchardCore.WebHooks.Controllers
 {
-
     [Admin]
     public class WebHookController : Controller
     {
@@ -75,7 +74,7 @@ namespace OrchardCore.WebHooks.Controllers
                 return Unauthorized();
             }
 
-            var events = _eventManager.GetAllWebHookEventsAsync();
+            var events = await _eventManager.GetAllWebHookEventsAsync();
             var model = new EditWebHookViewModel
             {
                 Events = events
@@ -94,16 +93,7 @@ namespace OrchardCore.WebHooks.Controllers
 
             if (ModelState.IsValid)
             {
-                if (model.SubscribeAllEvents)
-                {
-                    model.WebHook.Events = new List<string> {"*"};
-                }
-
-                if (!model.CustomPayload)
-                {
-                    model.WebHook.PayloadTemplate = null;
-                }
-
+                await ProcessWebHookAsync(model);
                 await _store.CreateWebHookAsync(model.WebHook);
 
                 _notifier.Success(H["Webhook created successfully"]);
@@ -111,7 +101,7 @@ namespace OrchardCore.WebHooks.Controllers
             }
 
             // If we got this far, something failed, redisplay form
-            model.Events = _eventManager.GetAllWebHookEventsAsync();
+            model.Events = await _eventManager.GetAllWebHookEventsAsync();
             return View(model);
         }
 
@@ -129,7 +119,7 @@ namespace OrchardCore.WebHooks.Controllers
                 return NotFound();
             }
 
-            var events = _eventManager.GetAllWebHookEventsAsync();
+            var events = await _eventManager.GetAllWebHookEventsAsync();
             var model = new EditWebHookViewModel
             {
                 Events = events,
@@ -158,16 +148,7 @@ namespace OrchardCore.WebHooks.Controllers
 
             if (ModelState.IsValid)
             {
-                if (model.SubscribeAllEvents)
-                {
-                    model.WebHook.Events = new List<string> {"*"};
-                }
-
-                if (!model.CustomPayload)
-                {
-                    model.WebHook.PayloadTemplate = null;
-                }
-
+                await ProcessWebHookAsync(model);
                 await _store.TryUpdateWebHook(model.WebHook);
 
                 _notifier.Success(H["Webhook updated successfully"]);
@@ -176,11 +157,11 @@ namespace OrchardCore.WebHooks.Controllers
             }
 
             // If we got this far, something failed, redisplay form
-            model.Events = _eventManager.GetAllWebHookEventsAsync();
+            model.Events = await _eventManager.GetAllWebHookEventsAsync();
             return View(model);
         }
 
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> Delete(string id)
         {
             if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageWebHooks))
@@ -242,6 +223,21 @@ namespace OrchardCore.WebHooks.Controllers
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task ProcessWebHookAsync(EditWebHookViewModel model)
+        {
+            if (model.SubscribeAllEvents)
+            {
+                model.WebHook.Events.Clear();
+            }
+
+            if (!model.CustomPayload)
+            {
+                model.WebHook.PayloadTemplate = null;
+            }
+
+            model.WebHook.Events = await _eventManager.NormalizeEventsAsync(model.WebHook.Events);
         }
     }
 }

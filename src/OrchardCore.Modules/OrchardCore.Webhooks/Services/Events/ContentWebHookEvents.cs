@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OrchardCore.ContentManagement.Metadata;
@@ -26,20 +27,49 @@ namespace OrchardCore.WebHooks.Services.Events
             {
                 foreach (var contentEvent in ContentEvents.AllEvents)
                 {
-                    yield return CreateEvent(typeDefinition.Name.ToLower(), contentEvent, typeDefinition.DisplayName);
+                    yield return CreateEvent(typeDefinition.Name.ToLower(), contentEvent, typeDefinition.DisplayName, category: "ContentType");
                 }
             }
 
             // Add a filter for all content type events e.g. content.created, content.published
             foreach (var contentEvent in ContentEvents.AllEvents)
             {
-                yield return CreateEvent("content", contentEvent);
+                yield return CreateEvent("content", contentEvent, category: "Content");
             }
         }
 
-        private WebHookEvent CreateEvent(string eventIdentifier, string subEventIdentifier, string eventName = null)
+        public IEnumerable<string> NormalizeEvents(IEnumerable<string> submittedEvents)
         {
-            return new WebHookEvent($"{eventIdentifier}.{subEventIdentifier}", eventName, category: "Content");
+            if(submittedEvents == null) throw new ArgumentNullException(nameof(submittedEvents));
+            
+            var normalizedEvents = new HashSet<string>();
+            var events = GetEvents();
+            
+            // Verify the events only consist of those defined by this provider 
+            foreach (var @event in submittedEvents)
+            {
+                if (events.Any(e => e.Id == @event))
+                {
+                    normalizedEvents.Add(@event);
+                }
+            }
+
+            // When a content.{eventName} event is being subscribed to, remove all other *.{eventName}
+            // since the 'content' event implies a subscription to all content events of that type.
+            foreach (var contentEvent in ContentEvents.AllEvents)
+            {
+                if(normalizedEvents.Contains($"content.{contentEvent}"))
+                {
+                    normalizedEvents.RemoveWhere(e => e.EndsWith($".{contentEvent}"));
+                }
+            }
+
+            return normalizedEvents;
+        }
+
+        private WebHookEvent CreateEvent(string eventIdentifier, string subEventIdentifier, string eventName = null, string category = null)
+        {
+            return new WebHookEvent($"{eventIdentifier}.{subEventIdentifier}", eventName, category: category);
         }
     }
 }

@@ -10,5 +10,12 @@ namespace OrchardCore.WebHooks.Services.Events
         {
             return Enumerable.Empty<WebHookEvent>();
         }
+
+        public IEnumerable<string> NormalizeEvents(IEnumerable<string> submittedEvents)
+        {
+            if(submittedEvents == null) throw new ArgumentNullException(nameof(submittedEvents));
+
+            return Enumerable.Empty<string>();
+        }
     }
 }

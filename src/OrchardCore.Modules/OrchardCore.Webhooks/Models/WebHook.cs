@@ -23,21 +23,15 @@ namespace OrchardCore.WebHooks.Models
         public IList<KeyValuePair<string, string>> Headers { get; set; } = new List<KeyValuePair<string, string>>();
 
         [Required]
+        [StringLength(64, MinimumLength = 32, ErrorMessage = "Secret must be at least 32 characters and less than 64.")]
         public string Secret { get; set; }
 
-        public IList<string> Events { get; set; } = new List<string>();
+        public ISet<string> Events { get; set; } = new HashSet<string>();
 
         public string PayloadTemplate { get; set; }
 
         public bool Enabled { get; set; } = true;
 
         public bool ValidateSsl { get; set; } = true;
-    }
-
-    public class WebHookHeader
-    {
-        public string Name { get; set; }
-
-        public string Value { get; set; }
     }
 }
