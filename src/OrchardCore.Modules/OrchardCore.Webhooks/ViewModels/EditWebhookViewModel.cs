@@ -8,5 +8,9 @@ namespace OrchardCore.WebHooks.ViewModels
         public List<WebHookEvent> Events { get; set; }
 
         public WebHook WebHook { get; set; } = new WebHook();
+
+        public bool CustomPayload { get; set; }
+
+        public bool SubscribeAllEvents { get; set; }
     }
 }

@@ -10,7 +10,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using OrchardCore.Environment.Shell;
+using OrchardCore.WebHooks.Expressions;
 using OrchardCore.WebHooks.Models;
+using OrchardCore.WebHooks.Services.Http;
 
 namespace OrchardCore.WebHooks.Services
 {
@@ -30,6 +32,7 @@ namespace OrchardCore.WebHooks.Services
         private const string SignatureHeaderValueTemplate = SignatureHeaderKey + "={0}";
 
         private readonly IHttpClientFactory _clientFactory;
+        private readonly IWebHooksExpressionEvaluator _expressionEvaluator;
         private readonly ShellSettings _shellSettings;
 
         /// <summary>
@@ -37,29 +40,34 @@ namespace OrchardCore.WebHooks.Services
         /// </summary>
         public WebHookSender(
             IHttpClientFactory clientFactory,
+            IWebHooksExpressionEvaluator expressionEvaluator,
             ShellSettings shellSettings,
             ILogger<WebHookSender> logger)
         {
             Logger = logger;
             _clientFactory = clientFactory;
+            _expressionEvaluator = expressionEvaluator;
             _shellSettings = shellSettings;
         }
 
         public ILogger Logger { get; set; }
 
         /// <inheritdoc />
-        public Task SendNotificationsAsync(IEnumerable<WebHook> webHooks, string topic, Func<JObject> payload)
+        public Task SendNotificationsAsync(IEnumerable<WebHook> webHooks, WebHookNotificationContext context)
         {
+            if (webHooks == null) throw new ArgumentNullException(nameof(webHooks));
+            if (context == null) throw new ArgumentNullException(nameof(context));
+
             // Send all webhooks in parallel
-            return Task.WhenAll(webHooks.Select(webHook => SendWebHookAsync(webHook, topic, payload)));
+            return Task.WhenAll(webHooks.Select(webHook => SendWebHookAsync(webHook, context)));
         }
 
-        private async Task SendWebHookAsync(WebHook webHook, string topic, Func<JObject> payload)
+        private async Task SendWebHookAsync(WebHook webHook, WebHookNotificationContext context)
         {
             try
             {
                 // Setup and send WebHook request
-                var request = CreateWebHookRequest(webHook, topic, payload);
+                var request = await CreateWebHookRequestAsync(webHook, context);
 
                 var clientName = webHook.ValidateSsl ? "webhooks" : "webhooks_insecure";
                 var client = _clientFactory.CreateClient(clientName);
@@ -88,15 +96,13 @@ namespace OrchardCore.WebHooks.Services
             }
         }
 
-
         /// <summary>
         /// Creates an <see cref="HttpRequestMessage"/> containing the headers and body given a <paramref name="webHook"/>.
         /// </summary>
         /// <param name="webHook">A <see cref="WebHook"/> to be sent.</param>
-        /// <param name="topic"></param>
-        /// <param name="payload"></param>
+        /// <param name="context"></param>
         /// <returns>A filled in <see cref="HttpRequestMessage"/>.</returns>
-        protected virtual HttpRequestMessage CreateWebHookRequest(WebHook webHook, string topic, Func<JObject> payload)
+        protected virtual async Task<HttpRequestMessage> CreateWebHookRequestAsync(WebHook webHook, WebHookNotificationContext context)
         {
             if (webHook == null)
             {
@@ -104,13 +110,20 @@ namespace OrchardCore.WebHooks.Services
             }
 
             // Create WebHook request
-            var request = new HttpRequestMessage(HttpMethod.Post, webHook.Url);
+            var request = new HttpRequestMessage(new HttpMethod(webHook.HttpMethod), webHook.Url);
+
+            // Override the default payload if a liquid template has been provided
+            var payload = context.DefaultPayload;
+            if (!string.IsNullOrEmpty(webHook.PayloadTemplate))
+            {
+                payload = await _expressionEvaluator.RenderAsync(webHook, context);
+            }
 
             // Fill in request body based on WebHook and payload
-            var body = CreateWebHookRequestBody(webHook, payload);
-            SignWebHookRequest(webHook, request, body);
+            request.Content = CreateWebHookRequestBody(webHook, payload);
+            await SignWebHookRequestAsync(webHook, request);
 
-            AddWebHookMetadata(webHook, topic, request);
+            AddWebHookMetadata(webHook, context.EventName, request);
 
             // Add extra request or entity headers
             foreach (var kvp in webHook.Headers)
@@ -127,35 +140,33 @@ namespace OrchardCore.WebHooks.Services
         }
 
         /// <summary>
-        /// Creates a <see cref="JObject"/> used as the <see cref="HttpRequestMessage"/> entity body for a webhook notification.
+        /// Creates a <see cref="HttpContent"/> used as the <see cref="HttpRequestMessage"/> entity body for a webhook notification.
         /// </summary>
         /// <param name="webHook">A <see cref="WebHook"/> to be sent.</param>
         /// <param name="payload">The object representing the data to be sent with the webhook notification.</param>
         /// <returns>An initialized <see cref="JObject"/>.</returns>
-        protected virtual JObject CreateWebHookRequestBody(WebHook webHook, Func<JObject> payload)
+        protected virtual HttpContent CreateWebHookRequestBody(WebHook webHook, JObject payload)
         {
-            var body = payload == null ? new JObject() : payload();
+            var body = payload ?? new JObject();
             
-            // Only include fields in the notification that the user has specified.
-            if (webHook.Fields != null && webHook.Fields.Any())
+            if (webHook.ContentType == "application/x-www-form-urlencoded")
             {
-                body.Properties()
-                    .Where(prop => !webHook.Fields.Contains(prop.Name))
-                    .ToList()
-                    .ForEach(prop => prop.Remove());
+                return new JsonFormUrlEncodedContent(body);
             }
-
-            return body;
+            else
+            {
+                var serializedBody = body.ToString();
+                return new StringContent(serializedBody, Encoding.UTF8, webHook.ContentType);
+            }
         }
 
         /// <summary>
-        /// Adds a SHA 256 signature to the <paramref name="body"/> and adds it to the <paramref name="request"/> as an
+        /// Computes a SHA 256 signature of the request body and adds it to the <paramref name="request"/> as an
         /// HTTP header to the <see cref="HttpRequestMessage"/> along with the entity body.
         /// </summary>
         /// <param name="webHook">The current <see cref="WebHook"/>.</param>
         /// <param name="request">The request to add the signature to.</param>
-        /// <param name="body">The body to sign and add to the request.</param>
-        protected virtual void SignWebHookRequest(WebHook webHook, HttpRequestMessage request, JObject body)
+        protected virtual async Task SignWebHookRequestAsync(WebHook webHook, HttpRequestMessage request)
         {
             if (webHook == null)
             {
@@ -168,28 +179,20 @@ namespace OrchardCore.WebHooks.Services
                 throw new ArgumentNullException(nameof(request));
             }
 
-            if (body == null)
-            {
-                throw new ArgumentNullException(nameof(body));
-            }
-
             var secret = Encoding.UTF8.GetBytes(webHook.Secret);
             using (var hasher = new HMACSHA256(secret))
             {
-                var serializedBody = body.ToString();
-                request.Content = new StringContent(serializedBody, Encoding.UTF8, "application/json");
-
-                var data = Encoding.UTF8.GetBytes(serializedBody);
-                var sha256 = hasher.ComputeHash(data);
+                var body = await request.Content.ReadAsByteArrayAsync();
+                var sha256 = hasher.ComputeHash(body);
                 var headerValue = string.Format(CultureInfo.InvariantCulture, SignatureHeaderValueTemplate, ByteArrayToString(sha256));
                 request.Headers.Add(SignatureHeaderName, headerValue);
             }
         }
 
-        private void AddWebHookMetadata(WebHook webHook, string topic, HttpRequestMessage request)
+        private void AddWebHookMetadata(WebHook webHook, string eventName, HttpRequestMessage request)
         {
             request.Headers.Add(HeaderIdName, webHook.Id);
-            request.Headers.Add(HeaderEventName, topic);
+            request.Headers.Add(HeaderEventName, eventName);
             request.Headers.Add(HeaderTenantName, _shellSettings.Name);
         }
 

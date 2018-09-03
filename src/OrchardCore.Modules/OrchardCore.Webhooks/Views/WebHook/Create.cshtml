@@ -5,11 +5,21 @@
         return Model.WebHook.Url != null &&
                Model.WebHook.Url.Trim().ToLower().StartsWith("https://");
     }
+
+    var httpMethods = new List<SelectListItem>
+    {
+        new SelectListItem {Text = "POST", Value = "POST"},
+        new SelectListItem {Text = "GET", Value = "GET"},
+        new SelectListItem {Text = "PUT", Value = "PUT"},
+        new SelectListItem {Text = "DELETE", Value = "DELETE"},
+        new SelectListItem {Text = "PATCH", Value = "PATCH"},
+        new SelectListItem {Text = "HEAD", Value = "HEAD"}
+    };
 }
 <h1>@RenderTitleSegments(T["Create Webhook"])</h1>
 
 <p>
-    We’ll send a request to the URL below with the details of the subscribed events.
+    @T["We'll send a request to the URL below with the details of the subscribed events."]
 </p>
 
 <form asp-action="Create" asp-controller="WebHook" asp-area="OrchardCore.WebHooks" method="post">
@@ -24,14 +34,7 @@
         <label asp-for="WebHook.Url">@T["URL"] <small class="text-muted">@T["(required)"]</small> <span asp-validation-for="WebHook.Url"></span></label>
         <div class="input-group">
             <div class="input-group-prepend">
-                <select asp-for="WebHook.HttpMethod" class="custom-select">
-                    <option selected>POST</option>
-                    <option>GET</option>
-                    <option>PUT</option>
-                    <option>DELETE</option>
-                    <option>PATCH</option>
-                    <option>HEAD</option>
-                </select>
+                <select asp-for="WebHook.HttpMethod" asp-items="@httpMethods" class="custom-select"></select>
             </div>
             <input asp-for="WebHook.Url" class="form-control" type="text" />
         </div>
@@ -68,7 +71,7 @@
                 </button>
             </div>
         </div>
-        <span class="hint">@T["This secret is used to sign all notifications. Use the generated secret or enter your own."]</small>
+        <span class="hint">@T["This secret is used to sign all notifications. Use the generated secret or enter your own."]</span>
     </fieldset>
 
     <partial name="_Triggers" model="Model" />
@@ -81,7 +84,7 @@
         <label class="form-check-label" asp-for="WebHook.Enabled">
             Enabled
         </label>
-        <span class="hint">@T["We will send notifications when your selected event(s) occur."]</small>
+        <span class="hint">@T["We will send notifications when your selected event(s) occur."]</span>
     </fieldset>
 
     <div class="form-group">
@@ -101,8 +104,8 @@
                 </button>
             </div>
             <div class="modal-body">
-                @T["SSL verification helps ensure that hook payloads are delivered to your URL endpoint securely, " +
-                   "keeping your data away from prying eyes. Disabling this option is <strong>not recommended</strong>."]
+                @T["<p>SSL verification is an important security measure to protect your webhook data from being intercepted and ensures the payload is securely delivered to the URL endpoint.</p>" +
+                   "<p>Disabling this option is <strong>not recommended</strong>.</p>"]
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-success" data-dismiss="modal">Cancel</button>
@@ -137,42 +140,6 @@
         $(document).on('click', '#btn-regenerate', function (e) {
             e.preventDefault();
             setRandomSecret(true);
-        });
-        
-        // Custom Headers Field
-        function initHeaderFields() {
-            var controlForm = $('#headers #headersContainer:first');
-            controlForm.find('.header:not(:last) .btn-add')
-                .removeClass('btn-add').addClass('btn-remove')
-                .removeClass('btn-success').addClass('btn-danger')
-                .html('<span class="fa fa-trash"></span>');
-
-            $('#headersContainer input.headerKey').each(function (index) {
-                $(this).attr("name", "WebHook.Headers[" + index + "].Key");
-            });
-            $('#headersContainer input.headerValue').each(function (index) {
-                $(this).attr("name", "WebHook.Headers[" + index + "].Value");
-            });
-        }
-
-        initHeaderFields();
-        $(document).on('click', '.btn-add', function(e)
-        {
-            e.preventDefault();
-
-            var controlForm = $('#headers #headersContainer:first'),
-                currentEntry = $(this).parents('.header:first'),
-                newEntry = $(currentEntry.clone()).appendTo(controlForm);
-
-            newEntry.find('input').val('');
-            initHeaderFields();
-
-        }).on('click', '.btn-remove', function(e)
-        {
-            $(this).parents('.header:first').remove();
-            initHeaderFields();
-            e.preventDefault();
-            return false;
         });
 
         // SSL Verification Fields

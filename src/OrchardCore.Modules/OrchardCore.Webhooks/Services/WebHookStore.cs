@@ -76,7 +76,8 @@ namespace OrchardCore.WebHooks.Services
                 return false;
             }
 
-            //TODO: Update 
+            var index = webHookList.WebHooks.IndexOf(webHookToUpdate);
+            webHookList.WebHooks[index] = webHook;
 
             _session.Save(webHookList);
 

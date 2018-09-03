@@ -47,3 +47,45 @@
         </div>
     </div>
 </div>
+
+
+<script at="Foot">
+    $(function()
+    {
+        // Custom Headers Field
+        function initHeaderFields() {
+            var controlForm = $('#headers #headersContainer:first');
+            controlForm.find('.header:not(:last) .btn-add')
+                .removeClass('btn-add').addClass('btn-remove')
+                .removeClass('btn-success').addClass('btn-danger')
+                .html('<span class="fa fa-trash"></span>');
+
+            $('#headersContainer input.headerKey').each(function (index) {
+                $(this).attr("name", "WebHook.Headers[" + index + "].Key");
+            });
+            $('#headersContainer input.headerValue').each(function (index) {
+                $(this).attr("name", "WebHook.Headers[" + index + "].Value");
+            });
+        }
+
+        initHeaderFields();
+        $(document).on('click', '.btn-add', function(e)
+        {
+            e.preventDefault();
+
+            var controlForm = $('#headers #headersContainer:first'),
+                currentEntry = $(this).parents('.header:first'),
+                newEntry = $(currentEntry.clone()).appendTo(controlForm);
+
+            newEntry.find('input').val('');
+            initHeaderFields();
+
+        }).on('click', '.btn-remove', function(e)
+        {
+            $(this).parents('.header:first').remove();
+            initHeaderFields();
+            e.preventDefault();
+            return false;
+        });
+    });
+</script>

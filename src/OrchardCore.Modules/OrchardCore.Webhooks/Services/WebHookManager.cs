@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using OrchardCore.WebHooks.Extensions;
+using OrchardCore.WebHooks.Models;
 
 namespace OrchardCore.WebHooks.Services
 {
@@ -17,21 +19,25 @@ namespace OrchardCore.WebHooks.Services
             _store = store;
         }
 
-        public async Task NotifyAsync(string topic, Func<JObject> payload)
+        public async Task NotifyAsync(string eventName, JObject defaultPayload, Dictionary<string, object> properties)
         {
-            if (topic == null) throw new ArgumentNullException(nameof(topic));
+            if (eventName == null) throw new ArgumentNullException(nameof(eventName));
 
             // Get all WebHooks for tenant
             var webHooksList = await _store.GetAllWebHooksAsync();
 
             // Match any webhooks against the triggered event e.g. *.*, content.created, asset.updated
-            var matchedWebHooks = webHooksList.WebHooks.Where(x => x.Enabled && x.MatchesTopic(topic));
+            var matchedWebHooks = webHooksList.WebHooks.Where(x => x.Enabled && x.MatchesTopic(eventName));
             
-            // Filter the webhooks against the user provided JavaScript expression
-            // var filteredWebHooks = Filter(matchedWebHooks, content);
-            
+            var context = new WebHookNotificationContext
+            {
+                EventName = eventName,
+                DefaultPayload = defaultPayload,
+                Properties = properties
+            };
+
             // Send the notification to the matching webhooks
-            await _sender.SendNotificationsAsync(matchedWebHooks, topic, payload); 
+            await _sender.SendNotificationsAsync(matchedWebHooks, context); 
         }
     }
 }

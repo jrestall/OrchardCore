@@ -343,7 +343,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrchardCore.Logging.Serilog
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrchardCore.MiniProfiler", "src\OrchardCore.Modules\OrchardCore.MiniProfiler\OrchardCore.MiniProfiler.csproj", "{261E038A-25DA-4DD7-A66A-5884C6F2BEBF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrchardCore.WebHooks", "src\OrchardCore.Modules\OrchardCore.Webhooks\OrchardCore.WebHooks.csproj", "{49B6C9C6-CA02-42A9-8B71-117FF6044137}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrchardCore.WebHooks", "src\OrchardCore.Modules\OrchardCore.WebHooks\OrchardCore.WebHooks.csproj", "{49B6C9C6-CA02-42A9-8B71-117FF6044137}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

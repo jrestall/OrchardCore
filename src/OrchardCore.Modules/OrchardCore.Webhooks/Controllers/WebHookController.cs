@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -92,11 +94,16 @@ namespace OrchardCore.WebHooks.Controllers
 
             if (ModelState.IsValid)
             {
-                ValidateViewModel(model.WebHook);
-            }
+                if (model.SubscribeAllEvents)
+                {
+                    model.WebHook.Events = new List<string> {"*"};
+                }
 
-            if (ModelState.IsValid)
-            {
+                if (!model.CustomPayload)
+                {
+                    model.WebHook.PayloadTemplate = null;
+                }
+
                 await _store.CreateWebHookAsync(model.WebHook);
 
                 _notifier.Success(H["Webhook created successfully"]);
@@ -122,9 +129,13 @@ namespace OrchardCore.WebHooks.Controllers
                 return NotFound();
             }
 
+            var events = _eventManager.GetAllWebHookEventsAsync();
             var model = new EditWebHookViewModel
             {
-                WebHook = webHook
+                Events = events,
+                WebHook = webHook,
+                CustomPayload = webHook.PayloadTemplate != null,
+                SubscribeAllEvents = webHook.Events.Contains("*")
             };
 
             return View(model);
@@ -147,11 +158,16 @@ namespace OrchardCore.WebHooks.Controllers
 
             if (ModelState.IsValid)
             {
-                ValidateViewModel(model.WebHook);
-            }
+                if (model.SubscribeAllEvents)
+                {
+                    model.WebHook.Events = new List<string> {"*"};
+                }
 
-            if (ModelState.IsValid)
-            {
+                if (!model.CustomPayload)
+                {
+                    model.WebHook.PayloadTemplate = null;
+                }
+
                 await _store.TryUpdateWebHook(model.WebHook);
 
                 _notifier.Success(H["Webhook updated successfully"]);
@@ -160,10 +176,11 @@ namespace OrchardCore.WebHooks.Controllers
             }
 
             // If we got this far, something failed, redisplay form
+            model.Events = _eventManager.GetAllWebHookEventsAsync();
             return View(model);
         }
 
-        [HttpPost]
+        [HttpGet]
         public async Task<IActionResult> Delete(string id)
         {
             if (!await _authorizationService.AuthorizeAsync(User, Permissions.ManageWebHooks))
@@ -203,7 +220,6 @@ namespace OrchardCore.WebHooks.Controllers
             var ping = new Ping();
             var uri = new Uri(webHook.Url);
 
-
             PingReply result = null;
             string errorMessage = string.Empty;
             try
@@ -226,19 +242,6 @@ namespace OrchardCore.WebHooks.Controllers
             }
 
             return RedirectToAction(nameof(Index));
-        }
-
-        private void ValidateViewModel(WebHook model)
-        {
-            if (String.IsNullOrWhiteSpace(model.Name))
-            {
-                ModelState.AddModelError(nameof(WebHook.Name), S["The name is mandatory."]);
-            }
-
-            if (String.IsNullOrWhiteSpace(model.Url))
-            {
-                ModelState.AddModelError(nameof(WebHook.Url), S["The uri is mandatory."]);
-            }
         }
     }
 }

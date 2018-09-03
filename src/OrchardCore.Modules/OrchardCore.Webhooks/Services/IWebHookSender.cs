@@ -17,8 +17,7 @@ namespace OrchardCore.WebHooks.Services
         /// <see cref="IWebHookSender"/> implementation.
         /// </summary>
         /// <param name="webHooks">The collection of <see cref="WebHook"/> instances to process.</param>
-        /// <param name="topic">The topic that triggered the notifications.</param>
-        /// <param name="payload">The object to be sent with the webhook.</param>
-        Task SendNotificationsAsync(IEnumerable<WebHook> webHooks, string topic, Func<JObject> payload);
+        /// <param name="context">The context for the webhook notification.</param>
+        Task SendNotificationsAsync(IEnumerable<WebHook> webHooks, WebHookNotificationContext context);
     }
 }

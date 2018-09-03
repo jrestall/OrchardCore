@@ -17,7 +17,7 @@ namespace OrchardCore.WebHooks.Extensions
         /// <returns><c>true</c> if the <paramref name="topic"/> matches, otherwise <c>false</c>.</returns>
         public static bool MatchesTopic(this WebHook webHook, string topic)
         {
-            return webHook != null && (webHook.Topics.Contains(WildcardWebHookEvent.WildcardEvent.Name) || webHook.Topics.Contains(topic));
+            return webHook != null && (webHook.Events.Contains(WildcardWebHookEvent.WildcardEvent.Name) || webHook.Events.Contains(topic));
         }
     }
 }

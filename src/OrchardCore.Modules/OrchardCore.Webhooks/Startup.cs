@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.ContentManagement.Handlers;
 using OrchardCore.Environment.Navigation;
 using OrchardCore.Modules;
+using OrchardCore.WebHooks.Expressions;
 using OrchardCore.WebHooks.Handlers;
 using OrchardCore.WebHooks.Services;
 using OrchardCore.WebHooks.Services.Events;
@@ -35,6 +36,7 @@ namespace OrchardCore.WebHooks
             services.AddScoped<IWebHookEventProvider, MediaAssetWebHookEvents>();
             services.AddScoped<IWebHookEventProvider, WildcardWebHookEvent>();
             services.AddScoped<IWebHookEventProvider, ContentWebHookEvents>();
+            services.AddScoped<IWebHooksExpressionEvaluator, LiquidWebHooksExpressionEvaluator>();
         }
 
         private static void ConfigureHttpClient(IServiceCollection services)

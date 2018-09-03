@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace OrchardCore.WebHooks.Models
 {
@@ -6,31 +7,27 @@ namespace OrchardCore.WebHooks.Models
     {
         public string Id { get; set; }
 
+        [Required]
         public string Name { get; set; }
 
+        [Required]
         public string HttpMethod { get; set; }
         
+        [Required]
+        [Url(ErrorMessage = "Invalid webhook URL.")]
         public string Url { get; set; }
 
+        [Required]
         public string ContentType { get; set; }
 
         public IList<KeyValuePair<string, string>> Headers { get; set; } = new List<KeyValuePair<string, string>>();
 
+        [Required]
         public string Secret { get; set; }
 
-        public IList<string> Topics { get; set; }
+        public IList<string> Events { get; set; } = new List<string>();
 
-        /// <summary>
-        /// Optional array of fields that should be included in the webhook subscription.
-        /// </summary>
-        public IList<string> Fields { get; set; }
-
-        /// <summary>
-        /// A JavaScript expression that evaluates to true or false that filters the triggering events. 
-        /// </summary>
-        public string FilterExpression { get; set; }
-
-        public string Payload { get; set; }
+        public string PayloadTemplate { get; set; }
 
         public bool Enabled { get; set; } = true;
 
