@@ -237,6 +237,10 @@ namespace OrchardCore.WebHooks.Controllers
                 model.WebHook.PayloadTemplate = null;
             }
 
+            // Remove empty custom headers
+            model.WebHook.Headers = model.WebHook.Headers.Where(header => !string.IsNullOrWhiteSpace(header.Key)).ToList();
+
+            // Validate and optimize the webhook's event subscriptions
             model.WebHook.Events = await _eventManager.NormalizeEventsAsync(model.WebHook.Events);
         }
     }
