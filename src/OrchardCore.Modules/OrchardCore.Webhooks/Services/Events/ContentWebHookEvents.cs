@@ -62,7 +62,7 @@ namespace OrchardCore.WebHooks.Services.Events
             {
                 if(normalizedEvents.Contains($"content.{contentEvent}"))
                 {
-                    normalizedEvents.RemoveWhere(e => e.EndsWith($".{contentEvent}"));
+                    normalizedEvents.RemoveWhere(e => !e.StartsWith("content.") && e.EndsWith($".{contentEvent}"));
                 }
             }
 

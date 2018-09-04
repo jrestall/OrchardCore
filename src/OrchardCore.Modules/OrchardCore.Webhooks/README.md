@@ -4,7 +4,7 @@ Webhooks provide a way for external services to receive information about certai
 
 When the specified events happen we’ll send a POST request to each of the URLs you have configured. This allows external sites to be notified in near real-time when events such as a new blog post are published within your site.
 
-# List of Supported Webhook Events
+# Supported Events
 Right now webhooks can be registered for the following events:
 
 | Model          | Event                      | Trigger                                 |
@@ -41,6 +41,7 @@ The webhook is sent with a few default headers that help identify and verify the
 | X-Orchard-Event     | The event name that triggered the notification.               |
 | X-Orchard-Tenant    | The tenant name.                                              |
 | X-Orchard-Signature | The SHA 256 signature of the request body.                    |
+
 The `X-Orchard-Signature` header can be used to validate the authenticity of the webhook notification. The key for the signature is the `Secret` field specified when creating the webhook.
 
 ### Form URL Encoded

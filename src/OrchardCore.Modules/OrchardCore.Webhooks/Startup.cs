@@ -49,7 +49,7 @@ namespace OrchardCore.WebHooks
             AddWebHookHttpClient(services, "webhooks_insecure")
                 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler {
                     // TODO: Why won't DangerousAcceptAnyServerCertificateValidator resolve - Need for Linux/MACOS support.  
-                    // ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                    //ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
                     ServerCertificateCustomValidationCallback = (message, certificate2, arg3, arg4) => true
                 });
         }
