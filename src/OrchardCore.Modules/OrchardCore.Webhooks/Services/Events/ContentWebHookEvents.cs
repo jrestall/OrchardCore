@@ -24,7 +24,7 @@ namespace OrchardCore.WebHooks.Services.Events
             var typeDefinitions = _contentDefinitionManager.ListTypeDefinitions()
                 .Where(definition => definition.Settings.ToObject<ContentTypeSettings>().Creatable);
             
-            // Add a filter for each content type e.g. article.created
+            // Add events for each content type e.g. article.created
             foreach (var typeDefinition in typeDefinitions)
             {
                 foreach (var contentEvent in ContentEvents.AllEvents)
@@ -33,7 +33,7 @@ namespace OrchardCore.WebHooks.Services.Events
                 }
             }
 
-            // Add a filter for all content type events e.g. content.created, content.published
+            // Add events for all content type events e.g. content.created, content.published
             foreach (var contentEvent in ContentEvents.AllEvents)
             {
                 yield return CreateEvent("content", contentEvent, category: "Content");
