@@ -71,8 +71,6 @@ namespace OrchardCore.WebHooks.Services
                 var request = await CreateWebHookRequestAsync(webHook, context);
 
                 var clientName = webHook.ValidateSsl ? "webhooks" : "webhooks_insecure";
-
-
                 var client = _clientFactory.CreateClient(clientName);
 
                 if (Logger.IsEnabled(LogLevel.Debug))
