@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using OrchardCore.WebHooks.Models;
+using OrchardCore.WebHooks.Abstractions.Models;
 
 namespace OrchardCore.WebHooks.ViewModels
 {

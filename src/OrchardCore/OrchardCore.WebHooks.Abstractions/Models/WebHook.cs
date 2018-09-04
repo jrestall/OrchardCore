@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
-namespace OrchardCore.WebHooks.Models
+namespace OrchardCore.WebHooks.Abstractions.Models
 {
     public class WebHook
     {
@@ -11,13 +12,13 @@ namespace OrchardCore.WebHooks.Models
         public string Name { get; set; }
 
         [Required]
-        public string HttpMethod { get; set; }
+        public string HttpMethod { get; set; } = HttpMethods.Post;
         
         [Required]
         [Url(ErrorMessage = "Invalid webhook URL.")]
         public string Url { get; set; }
 
-        [Required]
+        [Required] 
         public string ContentType { get; set; }
 
         public IList<KeyValuePair<string, string>> Headers { get; set; } = new List<KeyValuePair<string, string>>();

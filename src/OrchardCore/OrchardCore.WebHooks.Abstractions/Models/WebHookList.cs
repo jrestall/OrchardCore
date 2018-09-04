@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace OrchardCore.WebHooks.Models
+namespace OrchardCore.WebHooks.Abstractions.Models
 {
     public class WebHookList
     {

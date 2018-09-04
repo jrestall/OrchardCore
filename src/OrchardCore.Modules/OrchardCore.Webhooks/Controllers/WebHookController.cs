@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
@@ -10,8 +9,7 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using OrchardCore.Admin;
 using OrchardCore.DisplayManagement.Notify;
-using OrchardCore.WebHooks.Models;
-using OrchardCore.WebHooks.Services;
+using OrchardCore.WebHooks.Abstractions.Services;
 using OrchardCore.WebHooks.ViewModels;
 
 namespace OrchardCore.WebHooks.Controllers
@@ -227,11 +225,13 @@ namespace OrchardCore.WebHooks.Controllers
 
         private async Task ProcessWebHookAsync(EditWebHookViewModel model)
         {
+            // Clear all events so that the event provider can fallback to the wildcard event
             if (model.SubscribeAllEvents)
             {
                 model.WebHook.Events.Clear();
             }
 
+            // Clear the custom payload template if we aren't using it
             if (!model.CustomPayload)
             {
                 model.WebHook.PayloadTemplate = null;

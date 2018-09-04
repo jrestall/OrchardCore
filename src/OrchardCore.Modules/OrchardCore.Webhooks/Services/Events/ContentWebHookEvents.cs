@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using OrchardCore.ContentManagement.Metadata;
 using OrchardCore.ContentManagement.Metadata.Settings;
+using OrchardCore.WebHooks.Abstractions.Models;
 using OrchardCore.WebHooks.Models;
+using OrchardCore.WebHooks.Abstractions.Services;
 
 namespace OrchardCore.WebHooks.Services.Events
 {
@@ -43,12 +45,12 @@ namespace OrchardCore.WebHooks.Services.Events
             if(submittedEvents == null) throw new ArgumentNullException(nameof(submittedEvents));
             
             var normalizedEvents = new HashSet<string>();
-            var events = GetEvents();
+            var events = GetEvents().ToList();
             
             // Verify the events only consist of those defined by this provider 
             foreach (var @event in submittedEvents)
             {
-                if (events.Any(e => e.Id == @event))
+                if (events.Any(e => e.Name == @event))
                 {
                     normalizedEvents.Add(@event);
                 }
@@ -67,9 +69,9 @@ namespace OrchardCore.WebHooks.Services.Events
             return normalizedEvents;
         }
 
-        private WebHookEvent CreateEvent(string eventIdentifier, string subEventIdentifier, string eventName = null, string category = null)
+        private WebHookEvent CreateEvent(string eventName, string subEventName, string eventDisplayName = null, string category = null)
         {
-            return new WebHookEvent($"{eventIdentifier}.{subEventIdentifier}", eventName, category: category);
+            return new WebHookEvent($"{eventName}.{subEventName}", eventDisplayName, category: category);
         }
     }
 }

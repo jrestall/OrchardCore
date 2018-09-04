@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OrchardCore.WebHooks.Models;
+using OrchardCore.WebHooks.Abstractions.Models;
+using OrchardCore.WebHooks.Abstractions.Services;
 using YesSql;
 
 namespace OrchardCore.WebHooks.Services

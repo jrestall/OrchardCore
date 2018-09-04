@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using OrchardCore.WebHooks.Models;
+using OrchardCore.WebHooks.Abstractions.Models;
+using OrchardCore.WebHooks.Abstractions.Services;
 
 namespace OrchardCore.WebHooks.Services
 {

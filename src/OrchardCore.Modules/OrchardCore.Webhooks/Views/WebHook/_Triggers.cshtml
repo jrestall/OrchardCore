@@ -31,7 +31,7 @@
                 var contentEvents = Model.Events.Where(e => e.Category == "Content");
 
                 var contentTypeEvents = Model.Events.Where(e => e.Category == "ContentType");
-                var groupedContentTypeEvents = contentTypeEvents.GroupBy(e => e.Name);
+                var groupedContentTypeEvents = contentTypeEvents.GroupBy(e => e.DisplayName);
             }
             <div id="selectedEventsContainer" style="display: none" class="form-group">
                 <h6>@T["Content Events"]</h6>
@@ -48,13 +48,14 @@
                     <tbody>
                         @foreach (var groupedContentEvent in groupedContentTypeEvents)
                         {
-                        <tr>
+                            <tr>
+                            @{var contentTypeClassName = groupedContentEvent.Key.HtmlClassify();}
                             @if (groupedContentEvent.Key != null)
                             {
                             <td class="table-light">
-                                @{var contentSafeName = groupedContentEvent.Key.ToSafeName();}
-                                <input id="checkbox-@contentSafeName" type="checkbox" class="row-selectall" data-target=".row-@contentSafeName">
-                                <label for="checkbox-@contentSafeName">
+                                
+                                <input id="checkbox-@contentTypeClassName" type="checkbox" class="row-selectall" data-target=".row-@contentTypeClassName">
+                                <label for="checkbox-@contentTypeClassName">
                                     @groupedContentEvent.Key
                                 </label>
                             </td>
@@ -67,7 +68,7 @@
                             }
                             @foreach (var contentEvent in groupedContentEvent)
                             {
-                            <td class="text-center cell-select"><input name="WebHook.Events" type="checkbox" class="row-@groupedContentEvent.Key.ToSafeName()" value="@contentEvent.Id" @(Model.WebHook.Events.Contains(contentEvent.Id) ? "checked" : "")></td>
+                            <td class="text-center cell-select"><input name="WebHook.Events" type="checkbox" class="row-@contentTypeClassName" value="@contentEvent.Name" @(Model.WebHook.Events.Contains(contentEvent.Name) ? "checked" : "")></td>
                             }
                         </tr>
                         }
@@ -75,7 +76,7 @@
                             <td class="border-0"></td>
                             @foreach (var contentEvent in contentEvents)
                             {
-                                <td class="table-light column-selectall"><input name="WebHook.Events" type="checkbox" value="@contentEvent.Id"></td>
+                                <td class="table-light column-selectall"><input name="WebHook.Events" type="checkbox" value="@contentEvent.Name"></td>
                             }
                         </tr>
                     </tbody>

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 
-namespace OrchardCore.WebHooks.Models
+namespace OrchardCore.WebHooks.Abstractions.Models
 {
     public class WebHookNotificationContext
     {

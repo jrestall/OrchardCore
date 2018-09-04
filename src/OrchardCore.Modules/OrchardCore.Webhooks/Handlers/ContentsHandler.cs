@@ -1,11 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using OrchardCore.ContentManagement;
 using OrchardCore.ContentManagement.Handlers;
+using OrchardCore.WebHooks.Abstractions.Services;
 using OrchardCore.WebHooks.Models;
-using OrchardCore.WebHooks.Services;
 
 namespace OrchardCore.WebHooks.Handlers
 {
@@ -50,14 +47,14 @@ namespace OrchardCore.WebHooks.Handlers
             // Setup the properties used in the liquid templates
             var properties = new Dictionary<string, object>
             {
-                {"ContentItem", contentItem}
+                {"Model", contentItem}
             };
 
             return Task.WhenAll(
-                // Trigger webhooks for the general content.{event} topic
+                // Trigger webhooks for the general content.{event} event
                 _webhooksManager.NotifyAsync($"content.{eventName}", contentItem.Content, properties),
 
-                // Trigger webhooks for the more specific {content type}.{event} topic e.g. article.created
+                // Trigger webhooks for the more specific {content type}.{event} event e.g. article.created
                 _webhooksManager.NotifyAsync($"{contentItem.ContentType.ToLower()}.{eventName}", contentItem.Content, properties)
             );
         }

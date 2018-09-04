@@ -1,10 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using OrchardCore.WebHooks.Models;
+using OrchardCore.WebHooks.Abstractions.Models;
 
-namespace OrchardCore.WebHooks.Services
+namespace OrchardCore.WebHooks.Abstractions.Services
 {
     /// <summary>
     /// Provides an abstraction for sending out WebHooks as provided by <see cref="IWebHookManager"/>. Implementation

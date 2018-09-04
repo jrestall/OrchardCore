@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
-namespace OrchardCore.WebHooks.Services
+namespace OrchardCore.WebHooks.Abstractions.Services
 {
     public interface IWebHookManager
     {

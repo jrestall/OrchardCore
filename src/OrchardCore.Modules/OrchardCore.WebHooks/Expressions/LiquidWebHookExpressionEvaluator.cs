@@ -6,16 +6,16 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using OrchardCore.Liquid;
-using OrchardCore.WebHooks.Models;
+using OrchardCore.WebHooks.Abstractions.Models;
 
 namespace OrchardCore.WebHooks.Expressions
 {
-    public class LiquidWebHooksExpressionEvaluator : IWebHooksExpressionEvaluator
+    public class LiquidWebHookExpressionEvaluator : IWebHookExpressionEvaluator
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILiquidTemplateManager _liquidTemplateManager;
 
-        public LiquidWebHooksExpressionEvaluator(
+        public LiquidWebHookExpressionEvaluator(
             IServiceProvider serviceProvider,
             ILiquidTemplateManager liquidTemplateManager
         )
@@ -36,13 +36,16 @@ namespace OrchardCore.WebHooks.Expressions
             var templateContext = new TemplateContext();
             var services = _serviceProvider;
             
+            templateContext.MemberAccessStrategy.Register<WebHook>();
             templateContext.SetValue(nameof(WebHook), webHook);
-            templateContext.SetValue("EventName", context.EventName);
+            templateContext.SetValue("EventId", context.EventName);
 
-            // Add webhook notification properties e.g. Model.Content, Model.Media.
+            // Add webhook notification properties e.g. ContentItem
             foreach (var item in context.Properties)
             {
-                templateContext.SetValue("Model." + item.Key, item.Value);
+                if (item.Value == null) continue;
+                templateContext.MemberAccessStrategy.Register(item.Value.GetType());
+                templateContext.SetValue(item.Key, item.Value);
             }
 
             // Add services.

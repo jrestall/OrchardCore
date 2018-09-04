@@ -1,8 +1,11 @@
 using System.Net.Http;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using OrchardCore.ContentManagement.Handlers;
 using OrchardCore.Environment.Navigation;
 using OrchardCore.Modules;
+using OrchardCore.WebHooks.Abstractions.Services;
 using OrchardCore.WebHooks.Expressions;
 using OrchardCore.WebHooks.Handlers;
 using OrchardCore.WebHooks.Services;
@@ -33,10 +36,11 @@ namespace OrchardCore.WebHooks
             services.AddScoped<IWebHookSender, WebHookSender>();
             services.AddScoped<IWebHookStore, WebHookStore>();
             services.AddScoped<IWebHookEventManager, WebHookEventManagaer>();
-            services.AddScoped<IWebHookEventProvider, MediaAssetWebHookEvents>();
             services.AddScoped<IWebHookEventProvider, WildcardWebHookEvent>();
             services.AddScoped<IWebHookEventProvider, ContentWebHookEvents>();
-            services.AddScoped<IWebHooksExpressionEvaluator, LiquidWebHooksExpressionEvaluator>();
+            services.AddScoped<IWebHookExpressionEvaluator, LiquidWebHookExpressionEvaluator>();
+
+            services.TryAddSingleton<IActionContextAccessor, ActionContextAccessor>();
         }
 
         private static void ConfigureHttpClient(IServiceCollection services)
@@ -62,7 +66,7 @@ namespace OrchardCore.WebHooks
 
         private static void ConfigureTimeoutPolicy(IPolicyRegistry<string> registry)
         {
-            var timeoutPolicy = Policy.TimeoutAsync(10);
+            var timeoutPolicy = Policy.TimeoutAsync<HttpResponseMessage>(10);
 
             registry.Add(TimeoutPolicyName, timeoutPolicy);
         }

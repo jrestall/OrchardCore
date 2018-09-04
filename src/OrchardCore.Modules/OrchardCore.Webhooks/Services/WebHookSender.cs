@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,6 +9,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using OrchardCore.Environment.Shell;
+using OrchardCore.WebHooks.Abstractions.Models;
+using OrchardCore.WebHooks.Abstractions.Services;
 using OrchardCore.WebHooks.Expressions;
 using OrchardCore.WebHooks.Models;
 using OrchardCore.WebHooks.Services.Http;
@@ -32,7 +33,7 @@ namespace OrchardCore.WebHooks.Services
         private const string SignatureHeaderValueTemplate = SignatureHeaderKey + "={0}";
 
         private readonly IHttpClientFactory _clientFactory;
-        private readonly IWebHooksExpressionEvaluator _expressionEvaluator;
+        private readonly IWebHookExpressionEvaluator _expressionEvaluator;
         private readonly ShellSettings _shellSettings;
 
         /// <summary>
@@ -40,7 +41,7 @@ namespace OrchardCore.WebHooks.Services
         /// </summary>
         public WebHookSender(
             IHttpClientFactory clientFactory,
-            IWebHooksExpressionEvaluator expressionEvaluator,
+            IWebHookExpressionEvaluator expressionEvaluator,
             ShellSettings shellSettings,
             ILogger<WebHookSender> logger)
         {
@@ -70,24 +71,20 @@ namespace OrchardCore.WebHooks.Services
                 var request = await CreateWebHookRequestAsync(webHook, context);
 
                 var clientName = webHook.ValidateSsl ? "webhooks" : "webhooks_insecure";
+
+
                 var client = _clientFactory.CreateClient(clientName);
 
-                var response = await client.SendAsync(request);
+                if (Logger.IsEnabled(LogLevel.Debug))
+                {
+                    var contentMessage = $"Sending webHook '{webHook.Id}' with body '{await request.Content.ReadAsStringAsync()}'.";
+                    Logger.LogDebug(contentMessage);
+                }
 
+                var response = await client.SendAsync(request);
+                
                 var message = $"WebHook '{webHook.Id}' resulted in status code '{response.StatusCode}'.";
                 Logger.LogInformation(message);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    // If we get a successful response then we are done.
-                    //await OnWebHookSuccess(webHook);
-                    // TODO: Log webhook events
-                }
-                else if (response.StatusCode == HttpStatusCode.Gone)
-                {
-                    // If we get a 410 Gone then we are also done.
-                    //await OnWebHookGone(webHook);
-                }
             }
             catch (Exception ex)
             {
@@ -125,16 +122,7 @@ namespace OrchardCore.WebHooks.Services
 
             AddWebHookMetadata(webHook, context.EventName, request);
 
-            // Add extra request or entity headers
-            foreach (var kvp in webHook.Headers)
-            {
-                if (string.IsNullOrEmpty(kvp.Key)) continue;
-                if (request.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value)) continue;
-                if (request.Content.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value)) continue;
-
-                var message = $"Could not add header field \'{kvp.Key}\' to the WebHook request for WebHook ID \'{webHook.Id}\'.";
-                Logger.LogError(message);
-            }
+            AddCustomHeaders(webHook, request);
 
             return request;
         }
@@ -144,12 +132,12 @@ namespace OrchardCore.WebHooks.Services
         /// </summary>
         /// <param name="webHook">A <see cref="WebHook"/> to be sent.</param>
         /// <param name="payload">The object representing the data to be sent with the webhook notification.</param>
-        /// <returns>An initialized <see cref="JObject"/>.</returns>
+        /// <returns>An initialized <see cref="HttpContent"/>.</returns>
         protected virtual HttpContent CreateWebHookRequestBody(WebHook webHook, JObject payload)
         {
             var body = payload ?? new JObject();
             
-            if (webHook.ContentType == "application/x-www-form-urlencoded")
+            if (webHook.ContentType == MediaTypeNames.FormUrlEncoded)
             {
                 return new JsonFormUrlEncodedContent(body);
             }
@@ -194,6 +182,20 @@ namespace OrchardCore.WebHooks.Services
             request.Headers.Add(HeaderIdName, webHook.Id);
             request.Headers.Add(HeaderEventName, eventName);
             request.Headers.Add(HeaderTenantName, _shellSettings.Name);
+        }
+
+        private void AddCustomHeaders(WebHook webHook, HttpRequestMessage request)
+        {
+            foreach (var kvp in webHook.Headers)
+            {
+                if (string.IsNullOrEmpty(kvp.Key)) continue;
+                if (request.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value)) continue;
+                if (request.Content.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value)) continue;
+
+                var message =
+                    $"Could not add header field \'{kvp.Key}\' to the WebHook request for WebHook ID \'{webHook.Id}\'.";
+                Logger.LogError(message);
+            }
         }
 
         public static string ByteArrayToString(byte[] ba)
