@@ -2,9 +2,11 @@ using Fluid;
 using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.ContentManagement;
 using OrchardCore.ContentManagement.Display.ContentDisplay;
+using OrchardCore.ContentManagement.GraphQL.Queries.Types;
 using OrchardCore.ContentTypes.Editors;
 using OrchardCore.Data.Migration;
 using OrchardCore.Flows.Drivers;
+using OrchardCore.Flows.GraphQL;
 using OrchardCore.Flows.Models;
 using OrchardCore.Flows.Settings;
 using OrchardCore.Flows.ViewModels;
@@ -36,6 +38,8 @@ namespace OrchardCore.Flows
 
             services.AddSingleton<ContentPart, FlowMetadata>();
             services.AddScoped<IDataMigration, Migrations>();
+
+            services.AddScoped<IContentTypeBuilder, FlowMetadataContentTypeBuilder>();
         }
     }
 }
