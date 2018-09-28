@@ -6,7 +6,7 @@ namespace OrchardCore.ContentManagement.GraphQL.Queries.Types
     {
         public ContentItemType()
         {
-            Name = "ContentItem";
+            Name = "ContentItemType";
 
             Field(ci => ci.ContentItemId);
             Field(ci => ci.ContentItemVersionId);
@@ -19,7 +19,14 @@ namespace OrchardCore.ContentManagement.GraphQL.Queries.Types
             Field(ci => ci.Owner);
             Field(ci => ci.Author);
 
-            // TODO: Return content parts?
+            Interface<ContentItemInterface>();
+
+            IsTypeOf = IsContentType;
+        }
+
+        private bool IsContentType(object obj)
+        {
+            return obj is ContentItem item && item.ContentType == Name;
         }
     }
 }

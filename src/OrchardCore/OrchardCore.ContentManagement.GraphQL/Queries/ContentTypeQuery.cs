@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.DependencyInjection;
 using OrchardCore.Apis.GraphQL;
-using OrchardCore.Apis.GraphQL.Queries;
 using OrchardCore.ContentManagement.GraphQL.Queries.Types;
 using OrchardCore.ContentManagement.Metadata;
 
@@ -29,54 +28,14 @@ namespace OrchardCore.ContentManagement.GraphQL.Queries
             var serviceProvider = _httpContextAccessor.HttpContext.RequestServices;
 
             var contentDefinitionManager = serviceProvider.GetService<IContentDefinitionManager>();
-            var typeActivator = serviceProvider.GetService<ITypeActivatorFactory<ContentPart>>();
-
+            var contentTypeBuilders = serviceProvider.GetService<IEnumerable<IContentTypeBuilder>>().ToList();
 
             foreach (var typeDefinition in contentDefinitionManager.ListTypeDefinitions())
             {
                 var typeType = new ContentItemType
                 {
-                    Name = typeDefinition.Name // Blog
+                    Name = typeDefinition.Name
                 };
-
-                var queryArguments = new List<QueryArgument>();
-
-                foreach (var part in typeDefinition.Parts)
-                {
-                    var partName = part.PartDefinition.Name; // BagPart
-
-                    var activator = typeActivator.GetTypeActivator(partName);
-
-                    var queryGraphType = typeof(ObjectGraphType<>).MakeGenericType(activator.Type);
-
-                    var inputGraphType = typeof(InputObjectGraphType<>).MakeGenericType(activator.Type);
-
-                    var queryGraphTypeResolved = (IObjectGraphType)serviceProvider.GetService(queryGraphType);
-
-                    if (queryGraphTypeResolved != null)
-                    {
-                        typeType.Field(
-                            queryGraphTypeResolved.GetType(),
-                            partName,
-                            resolve: context =>
-                            {
-                                var nameToResolve = context.ReturnType.Name;
-                                var typeToResolve = context.ReturnType.GetType().BaseType.GetGenericArguments().First();
-
-                                return context.Source.Get(typeToResolve, nameToResolve);
-                            });
-                    }
-
-                    var inputGraphTypeResolved = serviceProvider.GetService(inputGraphType) as IQueryArgumentObjectGraphType;
-
-                    if (inputGraphTypeResolved != null)
-                    {
-                        queryArguments.Add(new QueryArgument(inputGraphTypeResolved)
-                        {
-                            Name = partName
-                        });
-                    }
-                }
 
                 var query = new ContentItemsFieldType(_httpContextAccessor)
                 {
@@ -84,8 +43,9 @@ namespace OrchardCore.ContentManagement.GraphQL.Queries
                     ResolvedType = new ListGraphType(typeType)
                 };
 
-                foreach (var qa in queryArguments) {
-                    query.Arguments.Add(qa);
+                foreach (var builder in contentTypeBuilders)
+                {
+                    builder.BuildAsync(query, typeDefinition, typeType);
                 }
 
                 schema.Query.AddField(query);

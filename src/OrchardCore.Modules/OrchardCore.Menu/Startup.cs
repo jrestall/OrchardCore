@@ -30,6 +30,9 @@ namespace OrchardCore.Menu
             services.AddScoped<IContentPartDisplayDriver, LinkMenuItemPartDisplayDriver>();
             services.AddSingleton<ContentPart, LinkMenuItemPart>();
 
+            // MenuItemsListPart
+            services.AddSingleton<ContentPart, MenuItemsListPart>();
+
             services.AddTagHelpers(typeof(MenuTagHelper).Assembly);
         }
     }
